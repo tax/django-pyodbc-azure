@@ -211,8 +211,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     self.execute(
                         self.sql_alter_column % {
                             "table": self.quote_name(model._meta.db_table),
-                            "changes": s
-                            ql,
+                            "changes": sql,
                         },
                         params,
                     )
