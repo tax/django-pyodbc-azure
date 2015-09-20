@@ -32,6 +32,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     sql_delete_table = "DROP TABLE %(table)s"
     sql_rename_column = "EXEC sp_rename '%(table)s.%(old_column)s', %(new_column)s, 'COLUMN'"
     sql_rename_table = "EXEC sp_rename %(old_table)s, %(new_table)s"
+    sql_create_unique_null = "CREATE UNIQUE INDEX %(name)s ON %(table)s(%(columns)s) " \
+                             "WHERE %(columns)s IS NOT NULL"
 
     def _alter_column_type_sql(self, table, old_field, new_field, new_type):
         new_type = self._set_field_new_type_null_status(old_field, new_type)
@@ -209,7 +211,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     self.execute(
                         self.sql_alter_column % {
                             "table": self.quote_name(model._meta.db_table),
-                            "changes": sql,
+                            "changes": s
+                            ql,
                         },
                         params,
                     )
@@ -218,7 +221,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 self.execute(sql, params)
         # Added a unique?
         if not old_field.unique and new_field.unique:
-            self.execute(self._create_unique_sql(model, [new_field.column]))
+            if new_field.null:
+                self.execute(
+                    self._create_index_sql(
+                        model, [new_field], sql=self.sql_create_unique_null, suffix="_uniq"
+                    )
+                )
+            else:
+                self.execute(self._create_unique_sql(model, [new_field.column]))
         # Added an index?
         if (not old_field.db_index and new_field.db_index and
                 not new_field.unique and not
