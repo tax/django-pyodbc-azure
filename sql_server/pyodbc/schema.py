@@ -402,6 +402,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             definition, extra_params = self.column_sql(model, field)
             if definition is None:
                 continue
+            if field.null and field.unique:
+                definition = definition.replace(' UNIQUE', '')
+                self.deferred_sql.append(self._create_index_sql(
+                    model, [field], sql=self.sql_create_unique_null, suffix="_uniq"
+                ))
             # Check constraints can go on the column SQL here
             db_params = field.db_parameters(connection=self.connection)
             if db_params['check']:
